@@ -9,11 +9,9 @@ import static java.util.stream.Collectors.*;
 
 public class LanguageModel {
     private final ConcurrentMap<String, String> languageModels;
-
     public LanguageModel() {
         languageModels = new ConcurrentHashMap<>();
     }
-
     public void addLanguage(String language, String folderPath) {
         File[] files = new File(folderPath).listFiles();
         if (files == null) {
@@ -33,7 +31,7 @@ public class LanguageModel {
         // wait for all tasks to complete and collect the results
         String text = futures.stream().map(future -> {
                     try {
-                        return future.get().stream().map(string -> string.replaceAll("[.,!?]*", "")).collect(joining());
+                        return future.get().stream().map(string -> string.replaceAll("[.,!?]*", "").toLowerCase()).collect(joining());
                     } catch (InterruptedException | ExecutionException e) {
                         // handle the exception
                         return Collections.emptyList();
@@ -42,38 +40,16 @@ public class LanguageModel {
                 .collect(toList()).toString();
 
         languageModels.put(language, text);
+        executor.shutdown();
     }
-
-
-    public String classifyText(String folderPath) {
+    public String classifyText(String folderPath) throws IOException, IllegalArgumentException {
         File mysteryFile = new File(folderPath, "mystery.txt");
         CosineSimilarity cosineSimilarity = new CosineSimilarity();
         if (!mysteryFile.exists()) {
             throw new IllegalArgumentException("mystery.txt not found in " + folderPath);
         }
 
-        String mysteryText = null;
-        try {
-            mysteryText = Files.lines(mysteryFile.toPath()).collect(toList()).stream().map(string -> string.replaceAll("[.,!?]*", "")).collect(joining());
-        } catch (IOException e) {
-            // handle the exception
-        }
-
-        cosineSimilarity.cosineSimilarity(mysteryText, languageModels, 3);
-        return "";
-    }
-
-    public Map<String, Integer> generateNGrams(String text, int n) {
-        Map<String, Integer> nGrams = new HashMap<>();
-        for (int i = 0; i < text.length() - n + 1; i++) {
-            String nGram = text.substring(i, i + n);
-            nGrams.put(nGram, nGrams.getOrDefault(nGram, 0) + 1);
-        }
-        return nGrams;
-    }
-
-
-    private int computeSimilarity(Map<String, Integer> model, List<String> text) {
-        return (int) IntStream.range(0, text.size() - 2).mapToObj(i -> text.get(i) + " " + text.get(i + 1) + " " + text.get(i + 2)).filter(model::containsKey).count();
+        String mysteryText = Files.lines(mysteryFile.toPath()).collect(toList()).stream().map(string -> string.replaceAll("[.,!?]*", "")).collect(joining());
+        return cosineSimilarity.cosineSimilarity(mysteryText, languageModels, 3);
     }
 }
