@@ -8,6 +8,7 @@ import static java.util.stream.Collectors.*;
 
 public class LanguageModel {
     private final ConcurrentMap<String, String> languageModels;
+    private final LanguageDetectorService languageDetectorService = new LanguageDetectorService();
     public LanguageModel() {
         languageModels = new ConcurrentHashMap<>();
     }
@@ -22,18 +23,15 @@ public class LanguageModel {
 
         for (File file : files) {
             if (!file.isDirectory()) {
-                // submit a task to read the .txt files in the language subfolder concurrently
                 futures.add(executor.submit(() -> Files.lines(file.toPath()).collect(toList())));
             }
         }
 
-        // wait for all tasks to complete and collect the results
         String text = futures.stream().map(future -> {
                     try {
                         return future.get().stream().map(string -> string.replaceAll("[.,!?]*", "").toLowerCase()).collect(joining());
                     } catch (InterruptedException | ExecutionException e) {
-                        // handle the exception
-                        return Collections.emptyList();
+                        return "";
                     }
                 })
                 .collect(toList()).toString();
@@ -43,12 +41,11 @@ public class LanguageModel {
     }
     public String classifyText(String folderPath) throws IOException, IllegalArgumentException {
         File mysteryFile = new File(folderPath, "mystery.txt");
-        CosineSimilarity cosineSimilarity = new CosineSimilarity();
         if (!mysteryFile.exists()) {
             throw new IllegalArgumentException("mystery.txt not found in " + folderPath);
         }
 
         String mysteryText = Files.lines(mysteryFile.toPath()).collect(toList()).stream().map(string -> string.replaceAll("[.,!?]*", "")).collect(joining());
-        return cosineSimilarity.cosineSimilarity(mysteryText, languageModels, 3);
+        return languageDetectorService.detectLanguage(mysteryText, languageModels, 3);
     }
 }

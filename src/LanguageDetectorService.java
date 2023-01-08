@@ -1,21 +1,19 @@
 import java.util.*;
 
-public class CosineSimilarity {
+public class LanguageDetectorService {
     private final Map<String, Map<String, Integer>> languageWithNGram = new HashMap<>();
     private final Map<String, Double> similarityScoresWithLanguage = new HashMap<>();
 
-    public String cosineSimilarity(String mysteryText, Map<String, String> languageModels, int n) {
+    public String detectLanguage(String mysteryText, Map<String, String> languageModels, int n) {
 
         Map<String, Integer> mysteryTextNGram = generateNGrams(mysteryText, n);
 
         languageModels.entrySet()
                 .forEach(languageSet ->
-                        languageWithNGram.put(languageSet.getKey(), generateNGrams(String.valueOf(languageSet), n))
-                );
+                        languageWithNGram.put(languageSet.getKey(), generateNGrams(String.valueOf(languageSet), n)));
 
         languageWithNGram.keySet()
-                .forEach(language -> calculateAndSaveSimilarity(language, mysteryTextNGram)
-                );
+                .forEach(language -> calculateAndSaveSimilarity(language, mysteryTextNGram));
 
         return similarityScoresWithLanguage.entrySet()
                 .stream()
@@ -24,7 +22,7 @@ public class CosineSimilarity {
                 .getKey();
     }
 
-    public Map<String, Integer> generateNGrams(String text, int n) {
+    private Map<String, Integer> generateNGrams(String text, int n) {
         Map<String, Integer> nGrams = new HashMap<>();
         for (int i = 0; i < text.length() - n + 1; i++) {
             String nGram = text.substring(i, i + n);
@@ -33,12 +31,12 @@ public class CosineSimilarity {
         return nGrams;
     }
 
-    public void calculateAndSaveSimilarity(String language, Map<String, Integer> mysteryTextNGram) {
+    private void calculateAndSaveSimilarity(String language, Map<String, Integer> mysteryTextNGram) {
         double dotProduct = 0;
         for (String nGram : mysteryTextNGram.keySet()) {
             dotProduct += mysteryTextNGram.get(nGram) * languageWithNGram.get(language).getOrDefault(nGram, 0);
         }
-        // Calculate the Euclidean norm for both text vectors
+
         double norm1 = 0;
         for (int count : mysteryTextNGram.values()) {
             norm1 += count * count;
